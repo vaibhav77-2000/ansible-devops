@@ -1,0 +1,28 @@
+---
+# Provide intelligent storage class selection to minimize required user knowledge
+
+# 1. Lookup storage class availability
+# -----------------------------------------------------------------------------
+- name: "mck : storage : Load default storage class information"
+  include_tasks: "{{ role_path }}/../../common_tasks/default_storage_classes.yml"
+
+# 2. Set Storage (Required)
+# -----------------------------------------------------------------------------
+- name: "mck : storage : Default storage class if not set by user"
+  when: mongodb_storage_class is not defined or mongodb_storage_class == ""
+  set_fact:
+    mongodb_storage_class: "{{ defaultStorageClasses.rwo }}"
+
+- name: "mck : storage : Assert that storage class has been defined"
+  assert:
+    that:
+      - mongodb_storage_class is defined
+      - mongodb_storage_class != ""
+    fail_msg: "mongodb_storage_class must be defined for MongoDB Kubernetes Operator"
+
+# 3. Debug storage class configuration
+# -----------------------------------------------------------------------------
+- name: "mck : storage : Debug MongoDB storage class configuration"
+  debug:
+    msg:
+      - "Storage class (MongoDB / MCK) ............ {{ mongodb_storage_class }}"
