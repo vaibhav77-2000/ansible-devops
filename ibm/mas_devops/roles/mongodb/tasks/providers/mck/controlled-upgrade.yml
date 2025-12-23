@@ -25,7 +25,7 @@
     api_version: mongodbcommunity.mongodb.com/v1
     kind: MongoDBCommunity
     name: mas-mongo-mck
-    namespace: "{{ mongodb_namespace }}"
+    namespace: "{{ mongodb_mck_namespace }}"
   register: existing_mongodb
   until:
     - existing_mongodb.resources is defined

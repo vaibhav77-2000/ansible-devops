@@ -1,80 +1,3 @@
----
-# 1. Load default settings
-# -----------------------------------------------------------------------------
-- name: "Determine Version of Maximo Operator Catalog"
-  include_tasks: "{{ role_path }}/../../common_tasks/determine-ibmcatalog-tag.yml"
-
-- name: Load Catalog Metadata
-  when:
-    - mongo_extras_version is not defined or mongo_extras_version == ""
-    - catalog_tag is defined and catalog_tag != ""
-  block:
-    - ibm.mas_devops.get_catalog_info:
-        mas_catalog_version: "{{ catalog_tag }}"
-      register: _mas_catalog
-    - debug:
-        var: _mas_catalog
-    - name: "Set mongo version to default value if not explicitly set"
-      set_fact:
-        mongo_extras_version: "{{ _mas_catalog.mongo_extras_version_default }}"
-
-- name: "Mongo Version"
-  debug:
-    msg:
-      - "Maximo Operator Catalog .................. {{ catalog_tag }}"
-      - "Mongo Version ............................ {{ mongo_extras_version }}"
-
-- name: Load mongo defaults
-  include_vars:
-    file: "{{ role_path }}/../mirror_extras_prepare/vars/mongoce_{{ mongo_extras_version }}.yml"
-
-- name: Retrieve image setting parts
-  set_fact:
-    mongodb_operator_image_name: "{{ extra_images | selectattr('name', 'match', '.*/mongodb-kubernetes-operator$') | map(attribute='name') | first }}"
-    mongodb_operator_image_registry: "{{ extra_images | selectattr('name', 'match', '.*/mongodb-kubernetes-operator$') | map(attribute='registry') | first }}"
-    mongodb_operator_image_digest: "{{ extra_images | selectattr('name', 'match', '.*/mongodb-kubernetes-operator$') | map(attribute='digest') | first }}"
-    mongodb_operator_image_tag: "{{ extra_images | selectattr('name', 'match', '.*/mongodb-kubernetes-operator$') | map(attribute='tag') | first }}"
-    mongodb_operator_version_upgrade_post_start_hook_image_name: "{{ extra_images | selectattr('name', 'match', '.*/mongodb-kubernetes-operator-version-upgrade-post-start-hook$') | map(attribute='name') | first }}"
-    mongodb_operator_version_upgrade_post_start_hook_image_registry: "{{ extra_images | selectattr('name', 'match', '.*/mongodb-kubernetes-operator-version-upgrade-post-start-hook$') | map(attribute='registry') | first }}"
-    mongodb_operator_version_upgrade_post_start_hook_image_digest: "{{ extra_images | selectattr('name', 'match', '.*/mongodb-kubernetes-operator-version-upgrade-post-start-hook$') | map(attribute='digest') | first }}"
-    mongodb_agent_image_name: "{{ extra_images | selectattr('name', 'match', '.*/mongodb-agent$') | map(attribute='name') | first }}"
-    mongodb_agent_image_registry: "{{ extra_images | selectattr('name', 'match', '.*/mongodb-agent$') | map(attribute='registry') | first }}"
-    mongodb_agent_image_digest: "{{ extra_images | selectattr('name', 'match', '.*/mongodb-agent$') | map(attribute='digest') | first }}"
-    mongodb_readinessprobe_image_name: "{{ extra_images | selectattr('name', 'match', '.*/mongodb-kubernetes-readinessprobe$') | map(attribute='name') | first }}"
-    mongodb_readinessprobe_image_registry: "{{ extra_images | selectattr('name', 'match', '.*/mongodb-kubernetes-readinessprobe$') | map(attribute='registry') | first }}"
-    mongodb_readinessprobe_image_digest: "{{ extra_images | selectattr('name', 'match', '.*/mongodb-kubernetes-readinessprobe$') | map(attribute='digest') | first }}"
-    mongodb_image_name: "{{ extra_images | selectattr('name', 'match', '.*/mongo$') | map(attribute='name') | first }}"
-    mongodb_image_registry: "{{ extra_images | selectattr('name', 'match', '.*/mongo$') | map(attribute='registry') | first }}"
-    mongodb_image_digest: "{{ extra_images | selectattr('name', 'match', '.*/mongo$') | map(attribute='digest') | first }}"
-
-- name: Construct image full image settings
-  set_fact:
-    target_mongodb_version: "{{ mongo_extras_version }}"
-    mongodb_feature_compatibility_version: "{{ mongo_extras_version | regex_search('(?<=)(.*)(?=...)') }}"
-    mongodb_ce_version: "{{ mongodb_operator_image_tag }}"
-    target_mongodb_operator_image: "{{ mongodb_operator_image_registry }}/{{ mongodb_operator_image_name }}@{{ mongodb_operator_image_digest }}"
-    target_mongodb_operator_version_upgrade_post_start_hook_image: "{{ mongodb_operator_version_upgrade_post_start_hook_image_registry }}/{{ mongodb_operator_version_upgrade_post_start_hook_image_name }}@{{ mongodb_operator_version_upgrade_post_start_hook_image_digest }}"
-    target_mongodb_agent_image: "{{ mongodb_agent_image_registry }}/{{ mongodb_agent_image_name }}@{{ mongodb_agent_image_digest }}"
-    target_mongodb_readinessprobe_image: "{{ mongodb_readinessprobe_image_registry }}/{{ mongodb_readinessprobe_image_name }}@{{ mongodb_readinessprobe_image_digest }}"
-    target_mongodb_image: "{{ mongodb_image_registry }}/{{ mongodb_image_name }}@{{ mongodb_image_digest }}"
-
-# 2. Debug Properties
-# -----------------------------------------------------------------------------
-- name: "mck : install : Debug properties"
-  debug:
-    msg:
-      - "MongoDb namespace ......................... {{ mongodb_namespace }}"
-      - "MongoDb operator version .................. {{ mongodb_ce_version }}"
-      - "MongoDb data capacity ..................... {{ mongodb_storage_capacity_data }}"
-      - "MongoDb logs capacity ..................... {{ mongodb_storage_capacity_logs }}"
-      - "MongoDb replicas .......................... {{ mongodb_replicas }}"
-      - "MongoDb version ........................... {{ target_mongodb_version }}"
-      - "MongoDb feature compatibility version ..... {{ mongodb_feature_compatibility_version }}"
-      - "MAS instance ID ........................... {{ mas_instance_id | default('<undefined>', True) }}"
-      - "MAS config directory ...................... {{ mas_config_dir | default('<undefined>', True)  }}"
-      - "Controlled Upgrade ........................ {{ controlled_upgrade }}"
-      - "Override Spec over existing MongoDB ....... {{ mongodb_override_spec }}"
-
 # Validate if upgrade has been issued by user
 # Only needed when there is an existing mongo instance and its version does not match with the target version to be installed
 - name: "mck: install : validate upgrade process"
@@ -117,13 +40,13 @@
 # -----------------------------------------------------------------------------
 - name: "mck : install : Configure anyuid permissions in the MongoDb namespace"
   shell: |
-    oc adm policy add-scc-to-user anyuid system:serviceaccount:{{ mongodb_namespace }}:default
-    oc adm policy add-scc-to-user anyuid system:serviceaccount:{{ mongodb_namespace }}:mongodb-kubernetes-operator
+    oc adm policy add-scc-to-user anyuid system:serviceaccount:{{ mongodb_mck_namespace }}:default
+    oc adm policy add-scc-to-user anyuid system:serviceaccount:{{ mongodb_mck_namespace }}:mongodb-kubernetes-operator
 
 - name: "mck : install : Configure anyuid permissions for database service account"
-  when: mongodb_ce_version != "0.7.0"
+  when: mongodb_mck_version != "0.7.0"
   shell: |
-    oc adm policy add-scc-to-user anyuid system:serviceaccount:{{ mongodb_namespace }}:mongodb-database
+    oc adm policy add-scc-to-user anyuid system:serviceaccount:{{ mongodb_mck_namespace }}:mongodb-database
 
 # 6. Install the operator
 # -----------------------------------------------------------------------------
@@ -138,7 +61,7 @@
 
 # 7. Configure TLS using cert-manager (MCK)
 # -----------------------------------------------------------------------------
-- name: "mck : tls : Create CA Issuer in '{{ mongodb_namespace }}' namespace"
+- name: "mck : tls : Create CA Issuer in '{{ mongodb_mck_namespace }}' namespace"
   kubernetes.core.k8s:
     apply: yes
     template: "templates/mck/issuer.yml"
@@ -147,7 +70,7 @@
       status: "True"
       type: Ready
 
-- name: "mck : tls : Create CA certificate in '{{ mongodb_namespace }}' namespace"
+- name: "mck : tls : Create CA certificate in '{{ mongodb_mck_namespace }}' namespace"
   kubernetes.core.k8s:
     apply: yes
     template: "templates/mck/ca-cert.yml"
@@ -156,7 +79,7 @@
       status: "True"
       type: Ready
 
-- name: "mck : tls : Create server certificate Issuer in '{{ mongodb_namespace }}' namespace"
+- name: "mck : tls : Create server certificate Issuer in '{{ mongodb_mck_namespace }}' namespace"
   kubernetes.core.k8s:
     apply: yes
     template: "templates/mck/server-cert-issuer.yml"
@@ -165,7 +88,7 @@
       status: "True"
       type: Ready
 
-- name: "mck : tls : Create server certificate in '{{ mongodb_namespace }}' namespace"
+- name: "mck : tls : Create server certificate in '{{ mongodb_mck_namespace }}' namespace"
   kubernetes.core.k8s:
     apply: yes
     template: "templates/mck/server-cert.yml"
@@ -180,9 +103,9 @@
   kubernetes.core.k8s_info:
     api_version: v1
     kind: Secret
-    name: mongo-server-cert
-    namespace: "{{mongodb_namespace}}"
-  register: mongodb_ca_lookup
+    name: mongo-mck-server-cert
+    namespace: "{{mongodb_mck_namespace}}"
+  register: mongodb_mck_ca_lookup
 
 # Check if configmap exists
 - name: "mck : install : Check for existing CA configmap"
@@ -190,7 +113,7 @@
     api_version: v1
     kind: ConfigMap
     name: mas-mongo-mck-cert-map
-    namespace: "{{ mongodb_namespace }}"
+    namespace: "{{ mongodb_mck_namespace }}"
   register: ca_cfgmap_info
 
 # Creating a ca.crt configmap which will be consumed by mongo cr
@@ -199,7 +122,7 @@
     - ca_cfgmap_info.resources is defined
     - ca_cfgmap_info.resources | length == 0
   vars:
-    mongodb_ca_crt: "{{ mongodb_ca_lookup.resources[0].data['ca.crt'] | b64decode }}"
+    mongodb_ca_crt: "{{ mongodb_mck_ca_lookup.resources[0].data['ca.crt'] | b64decode }}"
   kubernetes.core.k8s:
     apply: yes
     template: "templates/mck/tls.yml"
@@ -211,7 +134,7 @@
     api_version: v1
     kind: Secret
     name: mas-mongo-mck-admin-password
-    namespace: "{{ mongodb_namespace }}"
+    namespace: "{{ mongodb_mck_namespace }}"
   register: admin_password_info
 
 - name: "mck : install : Create new MongoDB admin user credentials secret"
@@ -228,17 +151,17 @@
   kubernetes.core.k8s_info:
     api_version: v1
     kind: Secret
-    name: mas-mongo-mck-ßßßßßßßßßßßmetrics-endpoint-secret
-    namespace: "{{ mongodb_namespace }}"
+    name: mas-mongo-mck-metrics-endpoint-secret
+    namespace: "{{ mongodb_mck_namespace }}"
   register: metrics_endpoint_secret_info
   when:
-    - mongodb_ce_version is version('0.7.8', '>=')
+    - mongodb_mck_version is version('0.7.8', '>=')
 
 - name: "mck : install : Create new MongoDB metrics endpoint secret"
   when:
     - metrics_endpoint_secret_info.resources is defined
     - metrics_endpoint_secret_info.resources | length == 0
-    - mongodb_ce_version is version('0.7.8', '>=')
+    - mongodb_mck_version is version('0.7.8', '>=')
   kubernetes.core.k8s:
     apply: yes
     template: "templates/mck/metrics-endpoint-secret.yml.j2"
@@ -248,26 +171,26 @@
 - name: "mck : install : Deploy MongoDB cluster"
   kubernetes.core.k8s:
     apply: yes
-    template: "templates/mck/{{ mongodb_ce_version }}/cr.yml.j2"
+    template: "templates/mck/{{ mongodb_mck_version }}/cr.yml.j2"
     when:
-    - mongodb_override_spec or existing_mongodb.resources[0].status.version is not defined
+    - mongodb_mck_override_spec or existing_mongodb.resources[0].status.version is not defined
 
 - name: "mck : install : Preserving existing settings if Mongo already installed"
   vars:
-    mongodb_cpu_limits: "{{ existing_mongodb.resources[0].spec.statefulSet.spec.template.spec.containers[0].resources.limits.cpu }}"
-    mongodb_mem_limits: "{{ existing_mongodb.resources[0].spec.statefulSet.spec.template.spec.containers[0].resources.limits.memory }}"
-    mongodb_cpu_requests: "{{ existing_mongodb.resources[0].spec.statefulSet.spec.template.spec.containers[0].resources.requests.cpu }}"
-    mongodb_mem_requests: "{{ existing_mongodb.resources[0].spec.statefulSet.spec.template.spec.containers[0].resources.requests.memory }}"
-    mongodb_storage_class: "{{ existing_mongodb.resources[0].spec.statefulSet.spec.volumeClaimTemplates[0].spec.storageClassName }}"
-    mongodb_storage_capacity_data: "{{ existing_mongodb.resources[0].spec.statefulSet.spec.volumeClaimTemplates[0].spec.resources.requests.storage }}"
-    mongodb_storage_capacity_logs: "{{ existing_mongodb.resources[0].spec.statefulSet.spec.volumeClaimTemplates[1].spec.resources.requests.storage }}"
-    mongodb_replicas: "{{ existing_mongodb.resources[0].spec.members }}"
+    mongodb_mck_cpu_limits: "{{ existing_mongodb.resources[0].spec.statefulSet.spec.template.spec.containers[0].resources.limits.cpu }}"
+    mongodb_mck_mem_limits: "{{ existing_mongodb.resources[0].spec.statefulSet.spec.template.spec.containers[0].resources.limits.memory }}"
+    mongodb_mck_cpu_requests: "{{ existing_mongodb.resources[0].spec.statefulSet.spec.template.spec.containers[0].resources.requests.cpu }}"
+    mongodb_mck_mem_requests: "{{ existing_mongodb.resources[0].spec.statefulSet.spec.template.spec.containers[0].resources.requests.memory }}"
+    mongodb_mck_storage_class: "{{ existing_mongodb.resources[0].spec.statefulSet.spec.volumeClaimTemplates[0].spec.storageClassName }}"
+    mongodb_mck_storage_capacity_data: "{{ existing_mongodb.resources[0].spec.statefulSet.spec.volumeClaimTemplates[0].spec.resources.requests.storage }}"
+    mongodb_mck_storage_capacity_logs: "{{ existing_mongodb.resources[0].spec.statefulSet.spec.volumeClaimTemplates[1].spec.resources.requests.storage }}"
+    mongodb_mck_replicas: "{{ existing_mongodb.resources[0].spec.members }}"
   kubernetes.core.k8s:
     apply: yes
     template: "templates/mck/{{ mongodb_ce_version }}/cr.yml.j2"
   when:
     - existing_mongodb.resources[0].status.version is defined
-    - not mongodb_override_spec
+    - not mongodb_mck_override_spec
 
 - name: "mck : install : Set expected MongoDb version to {{ current_mongodb_version }}"
   set_fact:
@@ -286,7 +209,7 @@
     expected_mongodb_version: "4.2.23"
   when:
     - not controlled_upgrade
-    - mongodb_ce_version is version('0.7.0', '==')
+    - mongodb_mck_version is version('0.7.0', '==')
 
 # 11. Wait for the cluster to be ready
 # status.version on the mongo cr is not available with older mongo operators
@@ -305,48 +228,48 @@
           - "Deleting existing mongo statefulsets while performing mongo upgrade to ensure recreation with right image digests..."
 
     - name: "mck: install : Scale down mongodb-kubernetes-operator"
-      shell: oc patch deployment mongodb-kubernetes-operator --subresource='scale' --type='merge' -p '{"spec":{"replicas":0}}' -n {{ mongodb_namespace }}
-      register: scale_down_mongo_deployment_output
+      shell: oc patch deployment mongodb-kubernetes-operator --subresource='scale' --type='merge' -p '{"spec":{"replicas":0}}' -n {{ mongodb_mck_namespace }}
+      register: scale_down_mongo_mck_deployment_output
 
     - debug:
-        var: scale_down_mongo_deployment_output.stdout
+        var: scale_down_mongo_mck_deployment_output.stdout
 
     - name: "mck : install : Delete mas-mongo-mck statefulset so next time it recreates with right image"
-      shell: oc delete statefulset mas-mongo-mck -n {{ mongodb_namespace }}
-      register: delete_mongo_ss_output
+      shell: oc delete statefulset mas-mongo-mck -n {{ mongodb_mck_namespace }}
+      register: delete_mongo__mck_ss_output
 
     - debug:
-        var: delete_mongo_ss_output.stdout
+        var: delete_mongo_mck_ss_output.stdout
 
     - name: "mck: install : Delete mas-mongo-mck-arb statefulset so next time it recreates with right image"
-      shell: oc delete statefulset mas-mongo-mck-arb -n {{ mongodb_namespace }}
-      register: delete_mongo_ss_arb_output
+      shell: oc delete statefulset mas-mongo-mck-arb -n {{ mongodb_mck_namespace }}
+      register: delete_mongo_mck_ss_arb_output
 
     - debug:
-        var: delete_mongo_ss_arb_output.stdout
+        var: delete_mongo_mck_ss_arb_output.stdout
 
     - name: "mck : install : Scale up mongodb-kubernetes-operator"
-      shell: oc patch deployment mongodb-kubernetes-operator --subresource='scale' --type='merge' -p '{"spec":{"replicas":1}}' -n {{ mongodb_namespace }}
-      register: scale_up_mongo_deployment_output
+      shell: oc patch deployment mongodb-kubernetes-operator --subresource='scale' --type='merge' -p '{"spec":{"replicas":1}}' -n {{ mongodb_mck_namespace }}
+      register: scale_up_mongo_mck_deployment_output
 
     - debug:
-        var: scale_up_mongo_deployment_output.stdout
+        var: scale_up_mongo_mck_deployment_output.stdout
 - name: "mck : install : Wait for mas-mongo-mck stateful set to be ready"
   kubernetes.core.k8s_info:
     api_version: apps/v1
     kind: StatefulSet
     name: mas-mongo-mck
-    namespace: "{{ mongodb_namespace }}"
+    namespace: "{{ mongodb_mck_namespace }}"
   vars:
-    mongodb_replicas_check: "{{ existing_mongodb.resources[0].spec.members | default(mongodb_replicas|int) }}"
-  register: mongodb_statefulset
+    mongodb_replicas_check: "{{ existing_mongodb.resources[0].spec.members | default(mongodb_mck_replicas|int) }}"
+  register: mongodb_mck_statefulset
   retries: 45 # Approx 90 minutes
   delay: 120 # 2 minutes
   until:
-    - mongodb_statefulset.resources is defined
-    - mongodb_statefulset.resources | length > 0
-    - mongodb_statefulset.resources[0].status.readyReplicas is defined
-    - mongodb_statefulset.resources[0].status.readyReplicas ==  (mongodb_replicas_check|int)
+    - mongodb_mck_statefulset.resources is defined
+    - mongodb_mck_statefulset.resources | length > 0
+    - mongodb_mck_statefulset.resources[0].status.readyReplicas is defined
+    - mongodb_mck_statefulset.resources[0].status.readyReplicas ==  (mongodb_mck_replicas_check|int)
 
 - name: "mck : install : Wait for mas-mongo-mck-arb stateful set to be ready"
   when: target_mongodb_version is version('4.4.0','>=') # this statefulset will only exist in Mongo v4.4+
@@ -354,23 +277,23 @@
     api_version: apps/v1
     kind: StatefulSet
     name: mas-mongo-mck-arb
-    namespace: "{{ mongodb_namespace }}"
-  register: mongodb_arb_statefulset
+    namespace: "{{ mongodb_mck_namespace }}"
+  register: mongodb_mck_arb_statefulset
   retries: 45 # Approx 90 minutes
   delay: 120 # 2 minutes
   until:
-    - mongodb_arb_statefulset.resources is defined
-    - mongodb_arb_statefulset.resources | length > 0
-    - mongodb_arb_statefulset.resources[0].status.availableReplicas is defined
-    - mongodb_arb_statefulset.resources[0].status.availableReplicas == 0
+    - mongodb_mck_arb_statefulset.resources is defined
+    - mongodb_mck_arb_statefulset.resources | length > 0
+    - mongodb_mck_arb_statefulset.resources[0].status.availableReplicas is defined
+    - mongodb_mck_arb_statefulset.resources[0].status.availableReplicas == 0
 
 - name: "mck : install : Wait for Mongo CR to report expected version {{ expected_mongodb_version }}"
   kubernetes.core.k8s_info:
     api_version: mongodb.com/v1
     kind: MongoDB
     name: mas-mongo-mck
-    namespace: "{{ mongodb_namespace }}"
-  register: mongodb_cr
+    namespace: "{{ mongodb_mck_namespace }}"
+  register: mongodb_mck_cr
   retries: 45 # Approx 45 minutes
   delay: 60 # 1 minute
   until:
@@ -384,15 +307,15 @@
     api_version: monitoring.coreos.com/v1
     kind: ServiceMonitor
     name: mas-mongo-mck-service-monitor
-    namespace: "{{ mongodb_namespace }}"
-  register: mongoce_servicemonitor_info
+    namespace: "{{ mongodb_mck_namespace }}"
+  register: mongo_mck_servicemonitor_info
   when:
     - mongodb_mck_version is version('0.7.8', '>=')
 
 - name: "mck: install : Create new MongoDb service monitor"
   when:
-    - mongoce_servicemonitor_info.resources is defined
-    - mongoce_servicemonitor_info.resources | length == 0
+    - mongo_mck_servicemonitor_info.resources is defined
+    - mongo_mck_servicemonitor_info.resources | length == 0
     - mongodb_mck_version is version('0.7.8', '>=')
   kubernetes.core.k8s:
     apply: yes
@@ -427,17 +350,17 @@
     api_version: integreatly.org/v1alpha1
     kind: GrafanaDashboard
     name: mongodb-overview
-    namespace: "{{ mongodb_namespace }}"
+    namespace: "{{ mongodb_mck_namespace }}"
   register: mongoce_grafana_dashboard_info
   when:
-    - mongodb_ce_version is version('0.7.8', '>=')
+    - mongodb_mck_version is version('0.7.8', '>=')
     - supports_grafanav4
 
 - name: "mck : install : Create new MongoDb Grafana v4 dashboard"
   when:
     - supports_grafanav4
-    - mongoce_grafana_dashboard_info.resources is defined
-    - mongoce_grafana_dashboard_info.resources | length == 0
+    - mongomck_grafana_dashboard_info.resources is defined
+    - mongomck_grafana_dashboard_info.resources | length == 0
     - mongodb_mck_version is version('0.7.8', '>=')
   kubernetes.core.k8s:
     apply: yes
@@ -448,8 +371,8 @@
     api_version: grafana.integreatly.org/v1beta1
     kind: GrafanaDashboard
     name: mongodb-overview-v5
-    namespace: "{{ mongodb_namespace }}"
-  register: mongoce_grafana_dashboard_v5__info
+    namespace: "{{ mongodb_mck_namespace }}"
+  register: mongomck_grafana_dashboard_v5__info
   when:
     - mongodb_mck_version is version('0.7.8', '>=')
     - supports_grafanav5
@@ -457,8 +380,8 @@
 - name: "mck : install : Create new MongoDb Grafana v5 dashboard"
   when:
     - supports_grafanav5
-    - mongoce_grafana_dashboard_v5__info.resources is defined
-    - mongoce_grafana_dashboard_v5__info.resources | length == 0
+    - mongomck_grafana_dashboard_v5__info.resources is defined
+    - mongomck_grafana_dashboard_v5__info.resources | length == 0
     - mongodb_mck_version is version('0.7.8', '>=')
   kubernetes.core.k8s:
     apply: yes
@@ -474,7 +397,7 @@
       kubernetes.core.k8s_info:
         api_version: v1
         kind: Pod
-        namespace: "{{ mongodb_namespace }}"
+        namespace: "{{ mongodb_mck_namespace }}"
         label_selectors:
           - app=mas-mongo-mck-svc
       register: mongo_pods_output
@@ -482,7 +405,7 @@
     # List all mongo replicas
     - name: Set a list containing mongo replica pod names
       set_fact:
-        mongo_replicas: "{{ mongo_replicas|default([]) + [item.metadata.name] }}"
+        mongo_replicas: "{{ mongo_mck_replicas|default([]) + [item.metadata.name] }}"
       with_items: "{{ mongo_pods_output.resources }}"
       when: mongo_pods_output.resources is defined
       no_log: true
@@ -498,7 +421,7 @@
         api_version: v1
         kind: Secret
         name: mas-mongo-mck-admin-admin
-        namespace: "{{ mongodb_namespace }}"
+        namespace: "{{ mongodb_mck_namespace }}"
       register: admin_password_lookup
       retries: 30 # 30 * 30 seconds = 30 minutes
       delay: 30
@@ -512,17 +435,17 @@
         api_version: v1
         kind: ConfigMap
         name: mas-mongo-mck-cert-map
-        namespace: "{{ mongodb_namespace }}"
-      register: mongodb_ca_lookup
+        namespace: "{{ mongodb_mck_namespace }}"
+      register: mongodb_mck_ca_lookup
 
     # Lookup the server certificate
     - name: "mck : install : Lookup the server.crt"
       kubernetes.core.k8s_info:
         api_version: v1
         kind: Secret
-        name: mongo-server-cert
-        namespace: "{{ mongodb_namespace }}"
-      register: mongodb_crt_lookup
+        name: mongo-mck-server-cert
+        namespace: "{{ mongodb_mck_namespace }}"
+      register: mongodb_mck_crt_lookup
 
     - name: "mck : install : Create MAS MongoCfg"
       when:
@@ -532,8 +455,8 @@
         - mas_config_dir != ""
       ansible.builtin.template:
         src: mck/suite_mongocfg.yml.j2
-        dest: "{{ mas_config_dir }}/mongo-{{ mongodb_namespace }}.yml"
+        dest: "{{ mas_config_dir }}/mongo-{{ mongodb_mck_namespace }}.yml"
         mode: "664"
       vars:
-        mongodb_ca_pem: "{{ mongodb_ca_lookup.resources[0].data['ca.crt'] }}"
+        mongodb_ca_pem: "{{ mongodb_mck_ca_lookup.resources[0].data['ca.crt'] }}"
         mongodb_admin_password: "{{ admin_password_lookup.resources[0].data.password | b64decode }}"

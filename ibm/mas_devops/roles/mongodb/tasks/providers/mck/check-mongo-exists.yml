@@ -4,7 +4,7 @@
     api_version: mongodbcommunity.mongodb.com/v1
     kind: MongoDBCommunity
     name: mas-mongo-mck
-    namespace: "{{ mongodb_namespace }}"
+    namespace: "{{ mongodb_mck_namespace }}"
   register: existing_mongodb
 
 - name: "mck : check-mongo-exists : Check for existing mongo operator instance"
@@ -13,7 +13,7 @@
     kind: Pod
     label_selectors:
       - "name = mongodb-kubernetes-operator"
-    namespace: "{{ mongodb_namespace }}"
+    namespace: "{{ mongodb_mck_namespace }}"
   register: existing_mongo_operator
 
 - name: "mck : check-mongo-exists : Debug existing resources"
