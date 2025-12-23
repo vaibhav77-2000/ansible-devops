@@ -1,8 +1,8 @@
 apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
-  name: mongo-server-cert-issuer
-  namespace: "{{mongodb_namespace}}"
+  name: mongo-mck-server-cert-issuer
+  namespace: "{{mongodb_mck_namespace}}"
 spec:
   ca:
-    secretName: mongo-mck-secret
+    secretName: mongo-mck-ca-secret

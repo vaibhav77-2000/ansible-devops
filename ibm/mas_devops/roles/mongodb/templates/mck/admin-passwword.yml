@@ -4,9 +4,9 @@
 apiVersion: v1
 kind: Secret
 metadata:
-  name: mas-mongo-admin-password
-  namespace: "{{ mongodb_namespace }}"
+  name: mas-mongo-mck-admin-password
+  namespace: "{{ mongodb_mck_namespace }}"
 type: Opaque
 stringData:
   username: admin
-  password: "{{ lookup('password', '/tmp/mck-mongo-admin-password.txt chars=ascii_letters,digits length=16') }}"
+  password: "{{ lookup('password', '/tmp/mongo-mck-admin-password.txt chars=ascii_letters,digits length=16') }}"

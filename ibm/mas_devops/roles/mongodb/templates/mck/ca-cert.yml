@@ -2,21 +2,21 @@
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: mongo-ca-crt
-  namespace: "{{mongodb_namespace}}"
+  name: mongo-mck-ca-crt
+  namespace: "{{mongodb_mck_namespace}}"
 spec:
   isCA: true
-  commonName: mongo-ca-crt
-  secretName: mongo-ca-secret
+  commonName: mongo-mck-ca-crt
+  secretName: mongo-mck-ca-secret
   duration: 175200h # 20 years
   privateKey:
     algorithm: ECDSA
     size: 256
   dnsNames:
-    - "*.mas-mongo-ce-svc.{{mongodb_namespace}}.svc.cluster.local"
+    - "*.mas-mongo-mck-svc.{{mongodb_mck_namespace}}.svc.cluster.local"
     - "127.0.0.1"
     - "localhost"
   issuerRef:
-    name: mongo-issuer
+    name: mongo-mck-issuer
     kind: Issuer
     group: cert-manager.io

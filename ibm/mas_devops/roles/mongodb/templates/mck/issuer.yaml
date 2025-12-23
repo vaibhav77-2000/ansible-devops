@@ -2,7 +2,7 @@
 apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
-  name: mongo-issuer
-  namespace: "{{mongodb_namespace}}"
+  name: mongo-mck-issuer
+  namespace: "{{mongodb_mck_namespace}}"
 spec:
   selfSigned: {}
