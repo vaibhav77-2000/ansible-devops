@@ -12,41 +12,41 @@ metadata:
   name: mongodb-kubernetes-operator
   namespace: "{{ mongodb_mck_namespace }}"
 rules:
-  - apiGroups:
+- apiGroups:
   - ""
-    resources:
+  resources:
   - pods
-      - services
+  - services
   - configmaps
   - secrets
-    verbs:
-      - create
-      - delete
-      - get
-      - list
-  - patch
-      - update
-      - watch
-  - apiGroups:
-      - apps
-    resources:
-      - statefulsets
-    verbs:
-      - create
-      - delete
-      - get
-      - list
+  verbs:
+  - create
+  - delete
+  - get
+  - list
   - patch
   - update
-      - watch
-  - apiGroups:
-      - mongodbcommunity.mongodb.com
-    resources:
-      - mongodbcommunity
-      - mongodbcommunity/status
-      - mongodbcommunity/spec
-      - mongodbcommunity/finalizers
-    verbs:
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - statefulsets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - mongodbcommunity.mongodb.com
+  resources:
+  - mongodbcommunity
+  - mongodbcommunity/status
+  - mongodbcommunity/spec
+  - mongodbcommunity/finalizers
+  verbs:
   - get
   - patch
   - list
@@ -81,20 +81,20 @@ metadata:
   name: mongodb-database
   namespace: "{{ mongodb_mck_namespace }}"
 rules:
-  - apiGroups:
+- apiGroups:
   - ""
-    resources:
-      - secrets
-    verbs:
-      - get
-  - apiGroups:
+  resources:
+  - secrets
+  verbs:
+  - get
+- apiGroups:
   - ""
-    resources:
-      - pods
-    verbs:
-      - patch
-      - delete
-      - get
+  resources:
+  - pods
+  verbs:
+  - patch
+  - delete
+  - get
 ---
 # Source: https://github.com/mongodb/mongodb-kubernetes-operator/blob/v0.12.0/config/rbac/role_binding_database.yaml
 kind: RoleBinding
