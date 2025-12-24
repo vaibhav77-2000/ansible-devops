@@ -11,7 +11,7 @@
 - name: "mck : storage : Default storage class if not set by user"
   when: mongodb_mck_storage_class is not defined or mongodb_mck_storage_class == ""
   set_fact:
-    mongodb_storage_class: "{{ defaultStorageClasses.rwo }}"
+    mongodb_mck_storage_class: "{{ defaultStorageClasses.rwo }}"
 
 - name: "mck : storage : Assert that storage class has been defined"
   assert:
