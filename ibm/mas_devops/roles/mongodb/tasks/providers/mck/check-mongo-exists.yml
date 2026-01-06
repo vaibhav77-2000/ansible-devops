@@ -31,9 +31,9 @@
 - block:
     - name: Set existing_mongo_storage_class & capacity
       set_fact:
-        existing_mongo_storage_class: "{{ existing_mongodb.resources[0].spec.statefulSet.volumeClaimTemplates[0].spec.storageClassName }}"
-        existing_mongodb_storage_capacity_data: "{{ existing_mongodb.resources[0].spec.statefulSet.volumeClaimTemplates[0].spec.resources.requests.storage }}"
-        existing_mongodb_storage_capacity_logs: "{{ existing_mongodb.resources[0].spec.statefulSet.volumeClaimTemplates[1].spec.resources.requests.storage }}"
+        existing_mongo_storage_class: "{{ existing_mongodb.resources[0].spec.statefulSet.spec.volumeClaimTemplates[0].spec.storageClassName }}"
+        existing_mongodb_storage_capacity_data: "{{ existing_mongodb.resources[0].spec.statefulSet.spec.volumeClaimTemplates[0].spec.resources.requests.storage }}"
+        existing_mongodb_storage_capacity_logs: "{{ existing_mongodb.resources[0].spec.statefulSet.spec.volumeClaimTemplates[1].spec.resources.requests.storage }}"
 
     - name: Set existing_mongo_version
       set_fact:
@@ -48,4 +48,4 @@
   when:
     - existing_mongodb.resources | length > 0
     - existing_mongodb.resources[0].spec.version is defined
-    - existing_mongodb.resources[0].spec.version | length > 0ß
+    - existing_mongodb.resources[0].spec.version | length > 0

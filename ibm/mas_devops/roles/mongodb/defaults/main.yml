@@ -1,6 +1,8 @@
 ---
 # Currently supported providers are aws,ibm,community
 mongodb_provider: "{{ lookup('env','MONGODB_PROVIDER') | default('mck', True) }}"
+#mongodb_provider: "{{ lookup('env','MONGODB_PROVIDER') | default('community', True) }}"
+
 
 # When these are defined we will generate a MAS MongoCfg template
 mas_instance_id: "{{ lookup('env', 'MAS_INSTANCE_ID') }}"
@@ -16,11 +18,8 @@ mas_app_id: "{{ lookup('env', 'MAS_APP_ID') }}"
 # Where to install the operator and create the mongo instance
 mongodb_mck_namespace: "{{ lookup('env', 'MONGODB_NAMESPACE') | default('mongomck', True) }}"
 
-  
-
-
 # Storage configuration
-mongodb_mck_storage_class: "{{ lookup('env', 'MONGODB_STORAGE_CLASS') }}"
+mongodb_mck_storage_class: "{{ lookup('env', 'MONGODB_STORAGE_CLASS') | default('managed-nfs-storage', true) }}"
 mongodb_mck_storage_capacity_data: "{{ lookup('env', 'MONGODB_STORAGE_CAPACITY_DATA') | default('20Gi', True) }}"
 mongodb_mck_storage_capacity_logs: "{{ lookup('env', 'MONGODB_STORAGE_CAPACITY_LOGS') | default('20Gi', True) }}"
 
@@ -59,6 +58,8 @@ mongodb_mem_requests: "{{ lookup('env', 'MONGODB_MEM_REQUESTS') | default('1Gi',
 
 # MongoDB Replicas
 mongodb_replicas: "{{ lookup('env', 'MONGODB_REPLICAS') | default(3, True) }}"
+
+
 
 # Indicates if this is controlled upgrade of both the mongo operator and mongo instance
 controlled_upgrade: false
