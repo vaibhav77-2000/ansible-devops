@@ -1,3 +1,4 @@
+---
 # 1. Check for existing MongoDB install (MCK)
 # -----------------------------------------------------------------------------
 - name: "mck : install : Lookup existing mongo install"

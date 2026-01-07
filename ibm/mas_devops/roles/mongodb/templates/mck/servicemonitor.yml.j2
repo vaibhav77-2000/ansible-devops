@@ -3,7 +3,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: mas-mongo-mck-service-monitor
-  namespace: "{{ mongodb_namespace }}"
+  namespace: "{{ mongodb_mck_namespace }}"
 spec:
   endpoints:
   - basicAuth:
@@ -28,7 +28,7 @@ spec:
   # What namespace to watch
   namespaceSelector:
     matchNames:
-    - "{{ mongodb_namespace }}"
+    - "{{ mongodb_mck_namespace }}"
 
   # Service labels to match
   selector:
