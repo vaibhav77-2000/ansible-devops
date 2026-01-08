@@ -6,7 +6,7 @@ metadata:
 spec:
   members: {{ mongodb_mck_replicas }}
   type: ReplicaSet
-  version: "6.0.13"
+  version: "{{ current_mongodb_version }}"
   security:
     tls:
       enabled: true
