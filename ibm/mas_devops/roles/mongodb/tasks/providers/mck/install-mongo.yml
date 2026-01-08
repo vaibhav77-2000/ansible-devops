@@ -16,7 +16,7 @@
         var: _mas_catalog
     - name: "Set mongo version to default value if not explicitly set"
       set_fact:
-        mongo_mck_extras_version: "{{ _mas_catalog.mongo_extras_version_default }}"
+        mongo_mck_extras_version: "{{ _mas_catalog.mongo_mck_extras_version_default }}"
 
 - name: "Mongo Version"
   debug:
@@ -26,7 +26,7 @@
 
 - name: Load mongo defaults
   include_vars:
-    file: "{{ role_path }}/../mirror_extras_prepare/vars/mongomck_1.6.1.yml"
+    file: "{{ role_path }}/../mirror_extras_prepare/vars/mongomck_{{ mongo_extras_version }}.yml"
 
 - name: Retrieve image setting parts
   set_fact:
@@ -49,6 +49,8 @@
 
 - name: Construct image full image settings
   set_fact:
+    target_mongodb_mck_version: "{{ mongo_mck_extras_version}}"
+    mongodb_feature_compatibility_version: "{{ mongo_mck_extras_version | regex_search('(?<=)(.*)(?=...)') }}"
     mongodb_mck_version: "{{ mongodb_mck_operator_image_tag }}"
     target_mongodb_mck_operator_image: "{{ mongodb_mck_operator_image_registry }}/{{ mongodb_mck_operator_image_name }}@{{ mongodb_mck_operator_image_digest }}"
     target_mongodb_mck_operator_version_upgrade_post_start_hook_image: "{{ mongodb_mck_operator_version_upgrade_post_start_hook_image_registry }}/{{ mongodb_mck_operator_version_upgrade_post_start_hook_image_name }}@{{ mongodb_mck_operator_version_upgrade_post_start_hook_image_digest }}"
@@ -66,10 +68,11 @@
       - "MongoDb data capacity ..................... {{ mongodb_mck_storage_capacity_data }}"
       - "MongoDb logs capacity ..................... {{ mongodb_mck_storage_capacity_logs }}"
       - "MongoDb replicas .......................... {{ mongodb_mck_replicas }}"
+      - "MongoDb version ........................... {{ target_mongodb_mck_version }}"
+      - "MongoDb feature compatibility version ..... {{ mongodb_mck_feature_compatibility_version }}"
       - "MAS instance ID ........................... {{ mas_instance_id | default('<undefined>', True) }}"
       - "MAS config directory ...................... {{ mas_config_dir | default('<undefined>', True)  }}"
-      - "Controlled Upgrade ........................ {{ controlled_upgrade }}"
-
+      - "Override Spec over existing MongoDB ....... {{ mongodb_mck_override_spec }}"
 
 # Validate if upgrade has been issued by user
 # Only needed when there is an existing mongo instance and its version does not match with the target version to be installed
@@ -100,7 +103,7 @@
 - name: "mck : install : Install MongoDB Community CRDs"
   kubernetes.core.k8s:
     apply: yes
-    template: "templates/mck/0.13.0/crd_mongocommunity.yml.j2"
+    template: "templates/mck/{{ mongodb_mck_version }}//crd_mongocommunity.yml.j2"
     
 
 # 4. Install the CRD ( MCK Search )
@@ -108,14 +111,14 @@
 - name: "mck : install : Install MongoDB Search CRDs"
   kubernetes.core.k8s:
     apply: yes
-    template: "templates/mck/0.13.0/crd_mongosearch.yml.j2"
+    template: "templates/mck/{{ mongodb_mck_version }}///crd_mongosearch.yml.j2"
 
 # 5. Create namespace & install RBAC (MCK)
 # -----------------------------------------------------------------------------
 - name: "mck : install : Create namespace & install RBAC"
   kubernetes.core.k8s:
     apply: yes
-    template: "templates/mck/0.13.0/rbac.yml.j2"
+    template: "templates/mck/{{ mongodb_mck_version }}///rbac.yml.j2"
 
 # 5. Configure anyuid permissions in the MongoDb namespace
 # -----------------------------------------------------------------------------
@@ -131,7 +134,7 @@
 - name: "mck : install : Install the MongoDB Kubernetes Operator"
   kubernetes.core.k8s:
     apply: yes
-    template: "templates/mck/0.13.0/manager.yml.j2"
+    template: "templates/{{ mongodb_mck_version }}///manager.yml.j2"
     wait: yes
     wait_condition:
       status: "True"
@@ -242,16 +245,12 @@
     apply: yes
     template: "templates/mck/metrics-endpoint-secret.yml.j2"
   
-- name: Force MongoDB database version
-  set_fact:
-    target_mongodb_version: "0.13.0"
-
 # 10. Deploy the MongoDB cluster (MCK)
 # -----------------------------------------------------------------------------
 - name: "mck : install : Deploy MongoDB cluster"
   kubernetes.core.k8s:
     apply: yes
-    template: "templates/mck/0.13.0/cr.yml.j2"
+    template: "templates/mck/{{ mongodb_mck_version }}///cr.yml.j2"
   when:
     - mongodb_mck_override_spec or existing_mongodb.resources[0].status.version is not defined
 
@@ -267,7 +266,7 @@
     mongodb_mck_replicas: "{{ existing_mongodb.resources[0].spec.members }}"
   kubernetes.core.k8s:
     apply: yes
-    template: "templates/mck/0.13.0/cr.yml.j2"
+    template: "templates/mck/{{ mongodb_mck_version }}///cr.yml.j2"
   when:
     - existing_mongodb.resources[0].status.version is defined
     - not mongodb_mck_override_spec
