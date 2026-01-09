@@ -6,8 +6,8 @@
     # Define the target for backup/restore
     mas_instance_id: "{{ lookup('env', 'MAS_INSTANCE_ID') }}"
     mas_app_id: "{{ lookup('env', 'MAS_APP_ID') }}"
-    mongodb_provider: "{{ lookup('env', 'MONGODB_PROVIDER') | default('community', true) }}"
-    mongodb_namespace: "{{ lookup('env', 'MONGODB_NAMESPACE') | default('mongoce', true) }}"
+    mongodb_provider: "{{ lookup('env', 'MONGODB_PROVIDER') | default('mck', true) }}"
+    mongodb_namespace: "{{ lookup('env', 'MONGODB_NAMESPACE') | default('mongomck', true) }}"
 
     # Define what action to perform
     masbr_action: "{{ lookup('env', 'MASBR_ACTION') }}"
@@ -16,7 +16,7 @@
     masbr_job_component:
       name: "mongodb"
       instance: "{{ mas_instance_id }}"
-      namespace: "{{ mongodb_namespace }}"
+      namespace: "{{ mongodb_mck_namespace }}"
 
     # Configure path to backup_restore tasks
     role_path: "{{ [playbook_dir, '../common_tasks/backup_restore'] | path_join }}"

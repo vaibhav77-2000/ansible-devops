@@ -16,6 +16,8 @@ mas_app_id: "{{ lookup('env', 'MAS_APP_ID') }}"
 # Where to install the operator and create the mongo instance
 mongodb_mck_namespace: "{{ lookup('env', 'MONGODB_NAMESPACE') | default('mongomck', True) }}"
 
+mongodb_mck_override_spec: "{{ lookup('env','MONGODB_OVERRIDE_SPEC') | default (false, true) | bool }}"
+
 # Storage configuration
 mongodb_mck_storage_class: "{{ lookup('env', 'MONGODB_STORAGE_CLASS') | default('managed-nfs-storage', true) }}"
 mongodb_mck_storage_capacity_data: "{{ lookup('env', 'MONGODB_STORAGE_CAPACITY_DATA') | default('20Gi', True) }}"
@@ -41,7 +43,7 @@ mongo_mck_extras_version: "{{ lookup('env', 'MONGODB_VERSION') }}"
 mongodb_namespace: "{{ lookup('env', 'MONGODB_NAMESPACE') | default('mongoce', True) }}"
 
 # Decide if you want to keep your current spec for Mongo or overwrite it
-mongodb_mck_override_spec: "{{ lookup('env','MONGODB_OVERRIDE_SPEC') | default (false, true) | bool }}"
+mongodb_override_spec: "{{ lookup('env','MONGODB_OVERRIDE_SPEC') | default (false, true) | bool }}"
 
 # Storage configuration
 mongodb_storage_class: "{{ lookup('env', 'MONGODB_STORAGE_CLASS') }}"
